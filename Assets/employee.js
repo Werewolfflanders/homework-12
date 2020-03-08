@@ -1,16 +1,15 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
+const cTable = require("console.table");
 
 var connection = mysql.createConnection({
   host: "localhost",
 
-  // Your port; if not 3306
+  // Your port
   port: 3306,
 
-  // Your username
   user: "root",
 
-  // Your password
   password: "yourRootPassword",
   database: "employeetrackerdb"
 });
@@ -24,7 +23,7 @@ function runSearch() {
   inquirer
     .prompt({
       name: "action",
-      type: "rawlist",
+      type: "list",
       message: "What would you like to do?",
       choices: [
         "View all employees",
@@ -75,29 +74,28 @@ function runSearch() {
 }
 
 function employeeSearch() {
-  inquirer
-    .prompt({
-      name: "artist",
-      type: "input",
-      message: "What employee would you like view?"
-    })
-    .then(function(answer) {
-      var query = "SELECT first_name, last_name, role_id FROM employeetrackerdb WHERE ?";
-      connection.query(query, { artist: answer.artist }, function(err, res) {
-        for (var i = 0; i < res.length; i++) {
-          console.log("Position: " + res[i].position + " || Song: " + res[i].song + " || Year: " + res[i].year);
-        }
+  const query = `
+  SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
+  FROM employee 
+  INNER JOIN role ON employee.role_id = role.id
+  INNER JOIN department ON role.department_id = department.id;
+  `;
+  connection.query(query, (err, res) => {
+    if (err) throw err;
+    console.table("ALL EMPLOYEES", res);
         runSearch();
       });
-    });
+    
 }
 
 function departmentSearch() {
-  var query = "SELECT artist FROM top5000 GROUP BY artist HAVING count(*) > 1";
-  connection.query(query, function(err, res) {
-    for (var i = 0; i < res.length; i++) {
-      console.log(res[i].artist);
-    }
+  const query = `
+  SELECT name AS Departments 
+  FROM department;
+  `;
+  connection.query(query, (err, res) => {
+    if (err) throw err;
+    console.table("ALL DEPARTMENTS", res);
     runSearch();
   });
 }
