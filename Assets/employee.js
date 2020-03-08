@@ -11,7 +11,7 @@ var connection = mysql.createConnection({
   user: "root",
 
   password: "yourRootPassword",
-  database: "employeetrackerdb"
+  database: "employees_db"
 });
 
 connection.connect(function(err) {
@@ -26,14 +26,13 @@ function runSearch() {
       type: "list",
       message: "What would you like to do?",
       choices: [
-        "View all employees",
-        "View all employees by department",
-        "View all employees by manager",
-        "Add an employee",
-        "Remove employee",
-        "Update employee role",
-        "Update employee manager",
-        "View all roles"
+        "View ALL Employees",
+        "View ALL Departments",
+        "View ALL Roles",
+        "Add Employee",
+        "Add Department",
+        "Add Role",
+        "Update Employee Role"
       ]
     })
     .then(function(answer) {
@@ -46,29 +45,25 @@ function runSearch() {
         departmentSearch();
         break;
 
-      case "View all employees by manager":
-        managerSearch();
-        break;
-
       case "Add an employee":
         addEmployee();
-        break;
-
-      case "Remove employee":
-        removeEmployee();
         break;
       
       case "Update employee role":
         updateEmployee()
         break;
-
-      case "Update employee manager":
-          updateEmployeeManager()
-        break;
        
       case "View all roles":
           viewAllRoles()
           break;
+
+      case "Create new department":
+          addDepartment()
+          break;
+      
+      case "Add role":
+        addRole()
+        break;
       }
     });
 }
@@ -100,50 +95,16 @@ function departmentSearch() {
   });
 }
 
-function managerSearch() {
-  inquirer
-    .prompt([
-      {
-        name: "start",
-        type: "input",
-        message: "Enter starting position: ",
-        validate: function(value) {
-          if (isNaN(value) === false) {
-            return true;
-          }
-          return false;
-        }
-      },
-      {
-        name: "end",
-        type: "input",
-        message: "Enter ending position: ",
-        validate: function(value) {
-          if (isNaN(value) === false) {
-            return true;
-          }
-          return false;
-        }
-      }
-    ])
-    .then(function(answer) {
-      var query = "SELECT position,song,artist,year FROM top5000 WHERE position BETWEEN ? AND ?";
-      connection.query(query, [answer.start, answer.end], function(err, res) {
-        for (var i = 0; i < res.length; i++) {
-          console.log(
-            "Position: " +
-              res[i].position +
-              " || Song: " +
-              res[i].song +
-              " || Artist: " +
-              res[i].artist +
-              " || Year: " +
-              res[i].year
-          );
-        }
-        runSearch();
-      });
-    });
+function viewAllRoles() {
+  const query = `
+  SELECT title, salary
+  FROM role;
+  `;
+  connection.query(query, (err, res) => {
+    if (err) throw err;
+    console.table("ALL ROLES", res);
+    start();
+  });
 }
 
 function addEmployee() {

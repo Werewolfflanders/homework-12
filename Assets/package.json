@@ -1,0 +1,18 @@
+{
+  "name": "Assets",
+  "version": "1.0.0",
+  "description": "",
+  "main": "employee.js",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "inquirer": "^7.0.6",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
