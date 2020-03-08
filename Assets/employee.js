@@ -1,15 +1,11 @@
-var mysql = require("mysql");
-var inquirer = require("inquirer");
+const mysql = require("mysql");
+const inquirer = require("inquirer");
 const cTable = require("console.table");
 
-var connection = mysql.createConnection({
+const connection = mysql.createConnection({
   host: "localhost",
-
-  // Your port
   port: 3306,
-
   user: "root",
-
   password: "yourRootPassword",
   database: "employees_db"
 });
@@ -35,40 +31,34 @@ function runSearch() {
         "Update Employee Role"
       ]
     })
-    .then(function(answer) {
-      switch (answer.action) {
-      case "View all employees":
-        employeeSearch();
-        break;
-
-      case "View all employees by department":
-        departmentSearch();
-        break;
-
-      case "Add an employee":
-        addEmployee();
-        break;
-      
-      case "Update employee role":
-        updateEmployee()
-        break;
-       
-      case "View all roles":
-          viewAllRoles()
+    .then(response => {
+      switch (response.action) {
+        case "View ALL Employees":
+          viewAllEmployees();
           break;
-
-      case "Create new department":
-          addDepartment()
+        case "View ALL Departments":
+          viewAllDepartments();
           break;
-      
-      case "Add role":
-        addRole()
-        break;
+        case "View ALL Roles":
+          viewAllRoles();
+          break;
+        case "Add Employee":
+          addEmployee();
+          break;
+        case "Add Department":
+          addDepartment();
+          break;
+        case "Add Role":
+          addRole();
+          break;
+        case "Update Employee Role":
+          updateEmployee();
+          break;
       }
     });
 }
 
-function employeeSearch() {
+function viewAllEmployees() {
   const query = `
   SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary
   FROM employee 
@@ -78,12 +68,11 @@ function employeeSearch() {
   connection.query(query, (err, res) => {
     if (err) throw err;
     console.table("ALL EMPLOYEES", res);
-        runSearch();
-      });
-    
+    runSearch();
+  });
 }
 
-function departmentSearch() {
+function viewAllDepartments() {
   const query = `
   SELECT name AS Departments 
   FROM department;
@@ -103,66 +92,225 @@ function viewAllRoles() {
   connection.query(query, (err, res) => {
     if (err) throw err;
     console.table("ALL ROLES", res);
-    start();
+    runSearch();
   });
 }
 
 function addEmployee() {
-  inquirer
-    .prompt({
-      name: "song",
-      type: "input",
-      message: "What song would you like to look for?"
-    })
-    .then(function(answer) {
-      console.log(answer.song);
-      connection.query("SELECT * FROM top5000 WHERE ?", { song: answer.song }, function(err, res) {
-        console.log(
-          "Position: " +
-            res[0].position +
-            " || Song: " +
-            res[0].song +
-            " || Artist: " +
-            res[0].artist +
-            " || Year: " +
-            res[0].year
+  connection.query("SELECT * FROM role", (err, result) => {
+    inquirer
+      .prompt([
+        {
+          name: "first_name",
+          type: "input",
+          message: "What is the employee's first name?",
+          validate: input => {
+            if (input !== "" && input != null) {
+              return true;
+            } else {
+              return "First Name cannot be blank";
+            }
+          }
+        },
+        {
+          name: "last_name",
+          type: "input",
+          message: "What is the employee's last name?",
+          validate: input => {
+            if (input !== "" && input != null) {
+              return true;
+            } else {
+              return "Last name cannot be blank";
+            }
+          }
+        },
+        {
+          name: "role",
+          type: "list",
+          message: "What's the employee's role?",
+          choices: function() {
+            var rolesArray = [];
+            for (let i = 0; i < result.length; i++) {
+              rolesArray.push(result[i].title);
+            }
+            return rolesArray;
+          }
+        }
+      ])
+      .then(response => {
+        let chosenItem;
+        for (let i = 0; i < result.length; i++) {
+          if (result[i].title === response.role) {
+            chosenItem = result[i];
+          }
+        }
+
+        connection.query(
+          "INSERT INTO employee SET ?",
+          {
+            first_name: response.first_name,
+            last_name: response.last_name,
+            role_id: chosenItem.id,
+            manager_id: null
+          },
+          (err, res) => {
+            if (err) throw err;
+            console.log("Employee Added!");
+            runSearch();
+          }
         );
-        runSearch();
       });
+  });
+}
+
+function addDepartment() {
+  inquirer
+    .prompt([
+      {
+        name: "department_name",
+        type: "input",
+        message: "What is the department name?",
+        validate: input => {
+          if (input !== "" && input != null) {
+            return true;
+          } else {
+            return "Department name cannot be blank";
+          }
+        }
+      }
+    ])
+    .then(response => {
+      connection.query(
+        "INSERT INTO department SET ?",
+        {
+          name: response.department_name
+        },
+        (err, res) => {
+          if (err) throw err;
+          console.log("Department added");
+          runSearch();
+        }
+      );
     });
 }
 
-function removeEmployee() {
-  inquirer
-    .prompt({
-      name: "artist",
-      type: "input",
-      message: "What artist would you like to search for?"
-    })
-    .then(function(answer) {
-      var query = "SELECT top_albums.year, top_albums.album, top_albums.position, top5000.song, top5000.artist ";
-      query += "FROM top_albums INNER JOIN top5000 ON (top_albums.artist = top5000.artist AND top_albums.year ";
-      query += "= top5000.year) WHERE (top_albums.artist = ? AND top5000.artist = ?) ORDER BY top_albums.year, top_albums.position";
-
-      connection.query(query, [answer.artist, answer.artist], function(err, res) {
-        console.log(res.length + " matches found!");
-        for (var i = 0; i < res.length; i++) {
-          console.log(
-            i+1 + ".) " +
-              "Year: " +
-              res[i].year +
-              " Album Position: " +
-              res[i].position +
-              " || Artist: " +
-              res[i].artist +
-              " || Song: " +
-              res[i].song +
-              " || Album: " +
-              res[i].album
-          );
+function addRole() {
+  connection.query("SELECT * FROM department", (err, result) => {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          name: "role_title",
+          type: "input",
+          message: "What is the role name?",
+          validate: input => {
+            if (input !== "" && input != null) {
+              return true;
+            } else {
+              return "Role name cannot be blank";
+            }
+          }
+        },
+        {
+          name: "salary",
+          type: "input",
+          message: "How much is the salary?",
+          validate: input => {
+            if (input !== "" && input != null && !isNaN(input)) {
+              return true;
+            } else {
+              return "Salary cannot be blank and should be a number";
+            }
+          }
+        },
+        {
+          name: "department",
+          type: "list",
+          message: "What's the role's department?",
+          choices: function() {
+            var deptArray = [];
+            for (let i = 0; i < result.length; i++) {
+              deptArray.push(result[i].name);
+            }
+            return deptArray;
+          }
         }
-
-        runSearch();
+      ])
+      .then(response => {
+        let chosenItem;
+        for (let i = 0; i < result.length; i++) {
+          if (result[i].name === response.department) {
+            chosenItem = result[i];
+          }
+        }
+        connection.query(
+          "INSERT INTO role SET ?",
+          {
+            title: response.role_title,
+            salary: response.salary,
+            department_id: chosenItem.id
+          },
+          (err, res) => {
+            if (err) throw err;
+            console.log("Role Added!");
+            runSearch();
+          }
+        );
       });
+  });
+}
+
+function updateEmployee() {
+  connection.query("SELECT * FROM employee", (err, result) => {
+    connection.query("SELECT * FROM role", (err, result2) => {
+      if (err) throw err;
+      inquirer
+        .prompt([
+          {
+            name: "employee",
+            type: "list",
+            message: "Select the employee you want to update",
+            choices: function() {
+              const employeesArray = [];
+              result.forEach(employee => {
+                employeesArray.push(
+                  `${employee.first_name} ${employee.last_name}`
+                );
+              });
+              return employeesArray;
+            }
+          },
+          {
+            name: "role",
+            type: "list",
+            message: "What is the user's new role?",
+            choices: function() {
+              var rolesArray = [];
+              for (let i = 0; i < result2.length; i++) {
+                rolesArray.push(result2[i].title);
+              }
+              return rolesArray;
+            }
+          }
+        ])
+        .then(response => {
+          for (let i = 0; i < result2.length; i++) {
+            if (result2[i].title === response.role) {
+              chosenItem = result2[i];
+            }
+          }
+          const employee_name = response.employee;
+          const employeeArr = employee_name.split(" ");
+          connection.query(
+            `UPDATE employee SET ? WHERE first_name = '${employeeArr[0]}' AND last_name = '${employeeArr[1]}'`,
+            [{ role_id: chosenItem.id }],
+            (err, result) => {
+              if (err) throw err;
+              console.log(`Successfully updated ${response.employee}'s role!`);
+              runSearch();
+            }
+          );
+        });
     });
+  });
 }
